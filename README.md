@@ -1,36 +1,50 @@
 
-# Time-series Forecasting with ARIMA Modelling 
-## Objectives
-
-* Demonstrate a conceptual understanding of ARIMA modelling components for time-series forecasting. 
-* Pre-process the data to meet ARIMA based forecasting assumptions. 
-* Identify best model parameters using grid search for p,d,q and seasonal p,d,q parameters.
-* Evaluate the ARIMA model with validation testing.
-* Predict and visualize future values and calculate confidence level for the predictions. 
+# sARIMA models - Lab
 
 ## Introduction
 
-Time-series provide the opportunity to predict/forecast future values based on previous values. Such analyses can be used to forecast trends in economics, weather, and capacity planning etc. The specific properties of time-series data mean that specialized statistical methods are usually required.
+In this lesson, we'll reiterate what you learned previously, and talk about **integrated** models (hence ARIMA, which means as much as **integrated** ARMA), and extend to models that can cope with seasonality of time series.
 
-So far, wehave seen different techniques and all of them worked reasonably well for making the TS stationary. Lets make model on the TS after differencing as it is a very popular technique. Also, its relatively easier to add noise and seasonality back into predicted residuals in this case. Having performed the trend and seasonality estimation techniques, there can be two situations:
+## Objectives
+
+You will be able to: 
+
+* Demonstrate a conceptual understanding of ARIMA modelling components for time-series forecasting
+* Pre-process the data to meet ARIMA based forecasting assumptions
+* Identify best model parameters using grid search for p,d,q and seasonal p,d,q parameters
+* Evaluate the ARIMA model with validation testing
+* Predict and visualize future values and calculate confidence level for the predictions 
+
+## ARIMA
+
+Time series provide the opportunity to predict/forecast future values based on previous values. Such analyses can be used to forecast trends in economics, weather, and capacity planning etc. The specific properties of time-series data mean that specialized statistical methods are usually required.
+
+So far, we have seen different techniques to make time series stationary, as well as White Noise, Moving Average, AR, MA and ARMA models. Now recall that your data needs to be detrended (or made **stationary**) before you can go along and use ARMA models. This is because it is easier to add trends and seasonality back in after you modeled your data. Now there are several issues with ARMA:
+
+- ARMA models assume that the detrending already happened
+- ARMA neglects that seasonality can happen
+
+Let's summarize what we can observe when having time series in three situations:
 
 1. A strictly stationary series with no dependence among the values. This is the easy case wherein we can model the residuals as white noise. But this is very rare.
 
-2. A non-stationary series with significant dependence among values. In this case we need to use some statistical models like ARIMA to forecast the data.
+2. A nonstationary series with significant dependence among values, but no seasonality. In this case we can use ARMA models after we detrended, or we can use an **integrated** ARMA model that detrends for us.
 
-In this tutorial, we aim to produce reliable forecasts of a given time series by applying one of the most commonly used method for time-series forecasting, known as ARIMA. 
+3. A nonstationary series with significant dependence among values, **and** seasonality. In this case we can use a seasonal arima or SARIMA model.
+
+In this tutorial, we aim to produce reliable forecasts of a given time series by applying one of the most commonly used method for time series forecasting: ARIMA. After that we'll talk about seasonality and how to cope with it. 
 
 One of the methods available in Python to model and predict future points of a time series is known as SARIMAX, which stands for **Seasonal AutoRegressive Integrated Moving Averages with eXogenous regressors**. Here, we will primarily focus on the **ARIMA** component, which is used to fit time-series data to better understand and forecast future points in the time series.
 
-### Dataset
+## Dataset
 
 For this lab we shall use the dataset that we have seen before - "Atmospheric CO2 from Continuous Air Samples at Mauna Loa Observatory, Hawaii, U.S.A.," which collected CO2 samples from March 1958 to December 2001 (shown in lab1 if time-series). Let's bring in this data and plot as demosntrated earlier. You need to perform following tasks.
 
 1. Import necessary libraries
-2. import the CO2 dataset from `statsmodels`.
+2. import the CO2 dataset from `statsmodels`
 3. Resample the data as monthly groups and take monthly average
-4. Fill in the missing values with `Pandas.bfill()`.
-5. Plot the timeseries and inspect the head of data. 
+4. Fill in the missing values with `Pandas.bfill()`
+5. Plot the timeseries and inspect the head of data 
 
 
 ```python
@@ -364,13 +378,13 @@ As we forecast further out into the future, it is natural for us to become less 
 
 
 
-## Summary
-
-In this lab, we described how to implement a seasonal ARIMA model in Python. We made extensive use of the pandas and statsmodels libraries and showed how to run model diagnostics, as well as how to produce forecasts of the CO2 time series.
-
-### Bonus Exercises
+## Bonus Exercises
 
 * Change the start date of your dynamic forecasts to see how this affects the overall quality of your forecasts.
 * Try more combinations of parameters to see if you can improve the goodness-of-fit of your model.
 * Select a different metric to select the best model. For example, we used the AIC measure to find the best model, but you could seek to optimize the out-of-sample mean square error instead.
 
+
+## Summary
+
+In this lab, we described how to implement a seasonal ARIMA model in Python. We made extensive use of the pandas and statsmodels libraries and showed how to run model diagnostics, as well as how to produce forecasts of the CO2 time series.

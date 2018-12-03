@@ -1,42 +1,57 @@
 
-# Time-series Forecasting with ARIMA Modelling 
-## Objectives
-
-* Demonstrate a conceptual understanding of ARIMA modelling components for time-series forecasting. 
-* Pre-process the data to meet ARIMA based forecasting assumptions. 
-* Identify best model parameters using grid search for p,d,q and seasonal p,d,q parameters.
-* Evaluate the ARIMA model with validation testing.
-* Predict and visualize future values and calculate confidence level for the predictions. 
+# sARIMA models - Lab
 
 ## Introduction
 
-Time-series provide the opportunity to predict/forecast future values based on previous values. Such analyses can be used to forecast trends in economics, weather, and capacity planning etc. The specific properties of time-series data mean that specialized statistical methods are usually required.
+In this lesson, we'll reiterate what you learned previously, and talk about **integrated** models (hence ARIMA, which means as much as **integrated** ARMA), and extend to models that can cope with seasonality of time series.
 
-So far, wehave seen different techniques and all of them worked reasonably well for making the TS stationary. Lets make model on the TS after differencing as it is a very popular technique. Also, its relatively easier to add noise and seasonality back into predicted residuals in this case. Having performed the trend and seasonality estimation techniques, there can be two situations:
+## Objectives
+
+You will be able to: 
+
+* Demonstrate a conceptual understanding of ARIMA modelling components for time-series forecasting
+* Pre-process the data to meet ARIMA based forecasting assumptions
+* Identify best model parameters using grid search for p,d,q and seasonal p,d,q parameters
+* Evaluate the ARIMA model with validation testing
+* Predict and visualize future values and calculate confidence level for the predictions 
+
+## ARIMA
+
+Time series provide the opportunity to predict/forecast future values based on previous values. Such analyses can be used to forecast trends in economics, weather, and capacity planning etc. The specific properties of time-series data mean that specialized statistical methods are usually required.
+
+So far, we have seen different techniques to make time series stationary, as well as White Noise, Moving Average, AR, MA and ARMA models. Now recall that your data needs to be detrended (or made **stationary**) before you can go along and use ARMA models. This is because it is easier to add trends and seasonality back in after you modeled your data. Now there are several issues with ARMA:
+
+- ARMA models assume that the detrending already happened
+- ARMA neglects that seasonality can happen
+
+Let's summarize what we can observe when having time series in three situations:
 
 1. A strictly stationary series with no dependence among the values. This is the easy case wherein we can model the residuals as white noise. But this is very rare.
 
-2. A non-stationary series with significant dependence among values. In this case we need to use some statistical models like ARIMA to forecast the data.
+2. A nonstationary series with significant dependence among values, but no seasonality. In this case we can use ARMA models after we detrended, or we can use an **integrated** ARMA model that detrends for us.
 
-In this tutorial, we aim to produce reliable forecasts of a given time series by applying one of the most commonly used method for time-series forecasting, known as ARIMA. 
+3. A nonstationary series with significant dependence among values, **and** seasonality. In this case we can use a seasonal arima or SARIMA model.
+
+In this tutorial, we aim to produce reliable forecasts of a given time series by applying one of the most commonly used method for time series forecasting: ARIMA. After that we'll talk about seasonality and how to cope with it. 
 
 One of the methods available in Python to model and predict future points of a time series is known as SARIMAX, which stands for **Seasonal AutoRegressive Integrated Moving Averages with eXogenous regressors**. Here, we will primarily focus on the **ARIMA** component, which is used to fit time-series data to better understand and forecast future points in the time series.
 
-### Dataset
+## Dataset
 
 For this lab we shall use the dataset that we have seen before - "Atmospheric CO2 from Continuous Air Samples at Mauna Loa Observatory, Hawaii, U.S.A.," which collected CO2 samples from March 1958 to December 2001 (shown in lab1 if time-series). Let's bring in this data and plot as demosntrated earlier. You need to perform following tasks.
 
 1. Import necessary libraries
-2. import the CO2 dataset from `statsmodels`.
+2. import the CO2 dataset from `statsmodels`
 3. Resample the data as monthly groups and take monthly average
-4. Fill in the missing values with `Pandas.bfill()`.
-5. Plot the timeseries and inspect the head of data. 
+4. Fill in the missing values with `Pandas.bfill()`
+5. Plot the timeseries and inspect the head of data 
 
 
 ```python
 # Import necessary libraries
 import warnings
 warnings.filterwarnings('ignore')
+warnings.
 import itertools
 import pandas as pd
 import numpy as np
@@ -48,11 +63,15 @@ plt.style.use('ggplot')
 
 
 ```python
-data = sm.datasets.co2.load_pandas()
-dataset = data.data
+dataset = sm.datasets.co2.load().data
+df = pd.DataFrame(dataset)
+df['date'] = pd.to_datetime(df.date.str.decode("utf-8"))
+df.set_index(df['date'], inplace=True)
+df.drop(['date'], axis=1, inplace=True)
+df = df.asfreq('W-SAT')
 
 # The 'MS' string groups the data in buckets by start of the month
-CO2 = dataset['co2'].resample('MS').mean()
+CO2 = df['co2'].resample('MS').mean()
 
 # The term bfill means that we use the value before filling in missing values
 CO2 = CO2.fillna(CO2.bfill())
@@ -71,9 +90,10 @@ print(CO2.head())
 ```
 
 
-![png](index_files/index_3_0.png)
+![png](index_files/index_2_0.png)
 
 
+    date
     1958-03-01    316.100000
     1958-04-01    317.200000
     1958-05-01    317.433333
@@ -191,66 +211,112 @@ for comb in pdq:
 # ARIMA(1, 1, 1)x(1, 1, 1, 12)12 - AIC:277.78021965631604    
 ```
 
-    ARIMA (0, 0, 0) x (0, 0, 1, 12)12 : AIC Calculated =6787.34362403487
-    ARIMA (0, 0, 0) x (0, 1, 1, 12)12 : AIC Calculated =1596.7111727637512
-    ARIMA (0, 0, 0) x (1, 0, 0, 12)12 : AIC Calculated =1058.9388921320024
-    ARIMA (0, 0, 0) x (1, 0, 1, 12)12 : AIC Calculated =1056.2878601860818
+    ARIMA (0, 0, 0) x (0, 0, 0, 12)12 : AIC Calculated =7612.583429881011
+    ARIMA (0, 0, 0) x (0, 0, 1, 12)12 : AIC Calculated =6787.3436240316605
+    ARIMA (0, 0, 0) x (0, 1, 0, 12)12 : AIC Calculated =1854.828234141261
+    ARIMA (0, 0, 0) x (0, 1, 1, 12)12 : AIC Calculated =1596.711172764299
+    ARIMA (0, 0, 0) x (1, 0, 0, 12)12 : AIC Calculated =1058.9388921320026
+    ARIMA (0, 0, 0) x (1, 0, 1, 12)12 : AIC Calculated =1056.2878557033246
     ARIMA (0, 0, 0) x (1, 1, 0, 12)12 : AIC Calculated =1361.6578978072075
-    ARIMA (0, 0, 0) x (1, 1, 1, 12)12 : AIC Calculated =1044.7647912826797
-    ARIMA (0, 0, 1) x (0, 0, 0, 12)12 : AIC Calculated =6881.048755565863
-    ARIMA (0, 0, 1) x (0, 0, 1, 12)12 : AIC Calculated =6072.66232775145
-    ARIMA (0, 0, 1) x (0, 1, 0, 12)12 : AIC Calculated =1379.1941067050425
-    ARIMA (0, 0, 1) x (0, 1, 1, 12)12 : AIC Calculated =1241.4174716808225
-    ARIMA (0, 0, 1) x (1, 0, 0, 12)12 : AIC Calculated =1090.0113428349287
-    ARIMA (0, 0, 1) x (1, 0, 1, 12)12 : AIC Calculated =836.8771873369567
-    ARIMA (0, 0, 1) x (1, 1, 0, 12)12 : AIC Calculated =1119.5957893594177
-    ARIMA (0, 0, 1) x (1, 1, 1, 12)12 : AIC Calculated =807.0912987922768
-    ARIMA (0, 1, 0) x (0, 0, 1, 12)12 : AIC Calculated =1240.2211199194076
-    ARIMA (0, 1, 0) x (0, 1, 1, 12)12 : AIC Calculated =337.79385497181556
-    ARIMA (0, 1, 0) x (1, 0, 0, 12)12 : AIC Calculated =619.9501757829037
-    ARIMA (0, 1, 0) x (1, 0, 1, 12)12 : AIC Calculated =376.92837605748883
-    ARIMA (0, 1, 0) x (1, 1, 0, 12)12 : AIC Calculated =478.32969065294435
-    ARIMA (0, 1, 0) x (1, 1, 1, 12)12 : AIC Calculated =323.32458724140434
-    ARIMA (0, 1, 1) x (0, 0, 0, 12)12 : AIC Calculated =1371.1872602335384
-    ARIMA (0, 1, 1) x (0, 0, 1, 12)12 : AIC Calculated =1101.8410734303102
-    ARIMA (0, 1, 1) x (0, 1, 0, 12)12 : AIC Calculated =587.9479710210211
-    ARIMA (0, 1, 1) x (0, 1, 1, 12)12 : AIC Calculated =302.49489995248194
-    ARIMA (0, 1, 1) x (1, 0, 0, 12)12 : AIC Calculated =584.4333532968487
-    ARIMA (0, 1, 1) x (1, 0, 1, 12)12 : AIC Calculated =337.1999050109909
-    ARIMA (0, 1, 1) x (1, 1, 0, 12)12 : AIC Calculated =433.08636081814456
-    ARIMA (0, 1, 1) x (1, 1, 1, 12)12 : AIC Calculated =281.51901783591654
+    ARIMA (0, 0, 0) x (1, 1, 1, 12)12 : AIC Calculated =1044.7647913037993
+    ARIMA (0, 0, 1) x (0, 0, 0, 12)12 : AIC Calculated =6881.048754074922
+    ARIMA (0, 0, 1) x (0, 0, 1, 12)12 : AIC Calculated =6072.662327948141
+    ARIMA (0, 0, 1) x (0, 1, 0, 12)12 : AIC Calculated =1379.194106691656
+    ARIMA (0, 0, 1) x (0, 1, 1, 12)12 : AIC Calculated =1241.4174716802704
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (0, 0, 1) x (1, 0, 0, 12)12 : AIC Calculated =1108.863847677881
+    ARIMA (0, 0, 1) x (1, 0, 1, 12)12 : AIC Calculated =780.4316432037131
+    ARIMA (0, 0, 1) x (1, 1, 0, 12)12 : AIC Calculated =1119.5957893612945
+    ARIMA (0, 0, 1) x (1, 1, 1, 12)12 : AIC Calculated =807.0912989123287
+    ARIMA (0, 1, 0) x (0, 0, 0, 12)12 : AIC Calculated =1675.8086923024293
+    ARIMA (0, 1, 0) x (0, 0, 1, 12)12 : AIC Calculated =1240.221119919409
+    ARIMA (0, 1, 0) x (0, 1, 0, 12)12 : AIC Calculated =633.4425586468699
+    ARIMA (0, 1, 0) x (0, 1, 1, 12)12 : AIC Calculated =337.7938550348507
+    ARIMA (0, 1, 0) x (1, 0, 0, 12)12 : AIC Calculated =619.9501759055394
+    ARIMA (0, 1, 0) x (1, 0, 1, 12)12 : AIC Calculated =376.9283759724254
+    ARIMA (0, 1, 0) x (1, 1, 0, 12)12 : AIC Calculated =478.3296906672489
+    ARIMA (0, 1, 0) x (1, 1, 1, 12)12 : AIC Calculated =323.0776499803783
+    ARIMA (0, 1, 1) x (0, 0, 0, 12)12 : AIC Calculated =1371.187260233786
+    ARIMA (0, 1, 1) x (0, 0, 1, 12)12 : AIC Calculated =1101.8410734302897
+    ARIMA (0, 1, 1) x (0, 1, 0, 12)12 : AIC Calculated =587.9479709744935
+    ARIMA (0, 1, 1) x (0, 1, 1, 12)12 : AIC Calculated =302.4949000759941
+    ARIMA (0, 1, 1) x (1, 0, 0, 12)12 : AIC Calculated =584.4333533144177
+    ARIMA (0, 1, 1) x (1, 0, 1, 12)12 : AIC Calculated =337.19990521132956
+    ARIMA (0, 1, 1) x (1, 1, 0, 12)12 : AIC Calculated =433.0863608026567
+    ARIMA (0, 1, 1) x (1, 1, 1, 12)12 : AIC Calculated =281.51898119127014
     ARIMA (1, 0, 0) x (0, 0, 0, 12)12 : AIC Calculated =1676.8881767362054
-    ARIMA (1, 0, 0) x (0, 0, 1, 12)12 : AIC Calculated =1241.9354689079782
-    ARIMA (1, 0, 0) x (0, 1, 0, 12)12 : AIC Calculated =624.2602350563734
-    ARIMA (1, 0, 0) x (0, 1, 1, 12)12 : AIC Calculated =341.28966099496495
-    ARIMA (1, 0, 0) x (1, 0, 0, 12)12 : AIC Calculated =579.3896622346488
-    ARIMA (1, 0, 0) x (1, 0, 1, 12)12 : AIC Calculated =370.5920447939986
-    ARIMA (1, 0, 0) x (1, 1, 0, 12)12 : AIC Calculated =476.0500429124218
-    ARIMA (1, 0, 0) x (1, 1, 1, 12)12 : AIC Calculated =327.58085977497274
-    ARIMA (1, 0, 1) x (0, 0, 0, 12)12 : AIC Calculated =1372.608588179217
-    ARIMA (1, 0, 1) x (0, 0, 1, 12)12 : AIC Calculated =1199.4888167850604
-    ARIMA (1, 0, 1) x (0, 1, 0, 12)12 : AIC Calculated =586.4485732942709
-    ARIMA (1, 0, 1) x (0, 1, 1, 12)12 : AIC Calculated =305.62738284483396
-    ARIMA (1, 0, 1) x (1, 0, 0, 12)12 : AIC Calculated =585.9654105067876
-    ARIMA (1, 0, 1) x (1, 0, 1, 12)12 : AIC Calculated =397.7400179166758
-    ARIMA (1, 0, 1) x (1, 1, 0, 12)12 : AIC Calculated =433.54694645051717
-    ARIMA (1, 0, 1) x (1, 1, 1, 12)12 : AIC Calculated =285.7651882273547
-    ARIMA (1, 1, 0) x (0, 0, 0, 12)12 : AIC Calculated =1324.3111127324576
-    ARIMA (1, 1, 0) x (0, 0, 1, 12)12 : AIC Calculated =1060.9351914428964
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 0, 0) x (0, 0, 1, 12)12 : AIC Calculated =1241.9354581283942
+    ARIMA (1, 0, 0) x (0, 1, 0, 12)12 : AIC Calculated =624.2602350739005
+    ARIMA (1, 0, 0) x (0, 1, 1, 12)12 : AIC Calculated =341.28966122019665
+    ARIMA (1, 0, 0) x (1, 0, 0, 12)12 : AIC Calculated =579.3897029013909
+    ARIMA (1, 0, 0) x (1, 0, 1, 12)12 : AIC Calculated =370.59195630710303
+    ARIMA (1, 0, 0) x (1, 1, 0, 12)12 : AIC Calculated =476.05004296711184
+    ARIMA (1, 0, 0) x (1, 1, 1, 12)12 : AIC Calculated =329.5844990909931
+    ARIMA (1, 0, 1) x (0, 0, 0, 12)12 : AIC Calculated =1372.6085881706358
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 0, 1) x (0, 0, 1, 12)12 : AIC Calculated =1199.4888199375305
+    ARIMA (1, 0, 1) x (0, 1, 0, 12)12 : AIC Calculated =586.4485732492988
+    ARIMA (1, 0, 1) x (0, 1, 1, 12)12 : AIC Calculated =305.6273810627783
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 0, 1) x (1, 0, 0, 12)12 : AIC Calculated =586.3100162936786
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 0, 1) x (1, 0, 1, 12)12 : AIC Calculated =399.40329412808194
+    ARIMA (1, 0, 1) x (1, 1, 0, 12)12 : AIC Calculated =433.5469464597512
+    ARIMA (1, 0, 1) x (1, 1, 1, 12)12 : AIC Calculated =285.76517845194695
+    ARIMA (1, 1, 0) x (0, 0, 0, 12)12 : AIC Calculated =1324.311112732457
+    ARIMA (1, 1, 0) x (0, 0, 1, 12)12 : AIC Calculated =1060.9351914425656
     ARIMA (1, 1, 0) x (0, 1, 0, 12)12 : AIC Calculated =600.7412682874252
-    ARIMA (1, 1, 0) x (0, 1, 1, 12)12 : AIC Calculated =312.13296325923795
-    ARIMA (1, 1, 0) x (1, 0, 0, 12)12 : AIC Calculated =593.6637755079673
-    ARIMA (1, 1, 0) x (1, 0, 1, 12)12 : AIC Calculated =349.2091453791845
-    ARIMA (1, 1, 0) x (1, 1, 0, 12)12 : AIC Calculated =440.1375919486213
-    ARIMA (1, 1, 0) x (1, 1, 1, 12)12 : AIC Calculated =293.74262239599506
-    ARIMA (1, 1, 1) x (0, 0, 0, 12)12 : AIC Calculated =1262.654554246476
-    ARIMA (1, 1, 1) x (0, 0, 1, 12)12 : AIC Calculated =1052.0636724060141
-    ARIMA (1, 1, 1) x (0, 1, 0, 12)12 : AIC Calculated =581.3099934904826
-    ARIMA (1, 1, 1) x (0, 1, 1, 12)12 : AIC Calculated =295.93740577502354
-    ARIMA (1, 1, 1) x (1, 0, 0, 12)12 : AIC Calculated =576.8647111698344
-    ARIMA (1, 1, 1) x (1, 0, 1, 12)12 : AIC Calculated =327.9049164493077
-    ARIMA (1, 1, 1) x (1, 1, 0, 12)12 : AIC Calculated =444.1243686483202
-    ARIMA (1, 1, 1) x (1, 1, 1, 12)12 : AIC Calculated =277.78021965631604
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 1, 0) x (0, 1, 1, 12)12 : AIC Calculated =312.1329632683155
+    ARIMA (1, 1, 0) x (1, 0, 0, 12)12 : AIC Calculated =593.6637754853627
+    ARIMA (1, 1, 0) x (1, 0, 1, 12)12 : AIC Calculated =349.20914648870234
+    ARIMA (1, 1, 0) x (1, 1, 0, 12)12 : AIC Calculated =440.13758848434276
+    ARIMA (1, 1, 0) x (1, 1, 1, 12)12 : AIC Calculated =293.56145594783413
+    ARIMA (1, 1, 1) x (0, 0, 0, 12)12 : AIC Calculated =1262.6545542448305
+    ARIMA (1, 1, 1) x (0, 0, 1, 12)12 : AIC Calculated =1052.0636724058634
+    ARIMA (1, 1, 1) x (0, 1, 0, 12)12 : AIC Calculated =581.3099935252751
+    ARIMA (1, 1, 1) x (0, 1, 1, 12)12 : AIC Calculated =295.9374058139739
+    ARIMA (1, 1, 1) x (1, 0, 0, 12)12 : AIC Calculated =576.8647111959294
+    ARIMA (1, 1, 1) x (1, 0, 1, 12)12 : AIC Calculated =327.90491128637893
+    ARIMA (1, 1, 1) x (1, 1, 0, 12)12 : AIC Calculated =444.12436865154666
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 1, 1) x (1, 1, 1, 12)12 : AIC Calculated =277.78022542661506
 
 
 
@@ -272,7 +338,7 @@ ans_df.loc[ans_df['aic'].idxmin()]
     pdq         (1, 1, 1)
     pdqs    (1, 1, 1, 12)
     aic            277.78
-    Name: 59, dtype: object
+    Name: 63, dtype: object
 
 
 
@@ -310,11 +376,11 @@ print(output.summary().tables[1])
     ==============================================================================
                      coef    std err          z      P>|z|      [0.025      0.975]
     ------------------------------------------------------------------------------
-    ar.L1          0.3182      0.092      3.442      0.001       0.137       0.499
-    ma.L1         -0.6254      0.077     -8.163      0.000      -0.776      -0.475
+    ar.L1          0.3183      0.092      3.443      0.001       0.137       0.499
+    ma.L1         -0.6255      0.077     -8.166      0.000      -0.776      -0.475
     ar.S.L12       0.0010      0.001      1.732      0.083      -0.000       0.002
-    ma.S.L12      -0.8769      0.026    -33.812      0.000      -0.928      -0.826
-    sigma2         0.0972      0.004     22.632      0.000       0.089       0.106
+    ma.S.L12      -0.8769      0.026    -33.808      0.000      -0.928      -0.826
+    sigma2         0.0972      0.004     22.634      0.000       0.089       0.106
     ==============================================================================
 
 
@@ -334,7 +400,7 @@ plt.show()
 ```
 
 
-![png](index_files/index_17_0.png)
+![png](index_files/index_16_0.png)
 
 
 The purpose here to ensure that residuals remain un-correlated, normally distributed having zero mean. In the absence of these assumptions, we can not move forward and need further tweating of the model. 
@@ -412,7 +478,7 @@ plt.show()
 ```
 
 
-![png](index_files/index_22_0.png)
+![png](index_files/index_21_0.png)
 
 
 The forecasts align with the true values  as seen above,with overall increase trend. We shall also check for the accuracy of our forecasts using  **MSE (Mean Squared Error)**. This will provide us with the average error of our forecasts. For each predicted value, we compute its distance to the true value and square the result. The results need to be squared so that positive/negative differences do not cancel each other out when we compute the overall mean.
@@ -473,7 +539,7 @@ plt.show()
 ```
 
 
-![png](index_files/index_28_0.png)
+![png](index_files/index_27_0.png)
 
 
 Once again, we quantify the predictive performance of our forecasts by computing the MSE.
@@ -534,7 +600,7 @@ plt.show()
 ```
 
 
-![png](index_files/index_35_0.png)
+![png](index_files/index_34_0.png)
 
 
 Both the forecasts and associated confidence interval that we have generated can now be used to further understand the time series and foresee what to expect. Our forecasts show that the time series is expected to continue increasing at a steady pace.
@@ -543,13 +609,12 @@ As we forecast further out into the future, it is natural for us to become less 
 
 
 
-## Summary
-
-In this lab, we described how to implement a seasonal ARIMA model in Python. We made extensive use of the pandas and statsmodels libraries and showed how to run model diagnostics, as well as how to produce forecasts of the CO2 time series.
-
-### Bonus Exercises
+## Bonus Exercises
 
 * Change the start date of your dynamic forecasts to see how this affects the overall quality of your forecasts.
 * Try more combinations of parameters to see if you can improve the goodness-of-fit of your model.
 * Select a different metric to select the best model. For example, we used the AIC measure to find the best model, but you could seek to optimize the out-of-sample mean square error instead.
 
+## Summary
+
+In this lab, we described how to implement a seasonal ARIMA model in Python. We made extensive use of the pandas and statsmodels libraries and showed how to run model diagnostics, as well as how to produce forecasts of the CO2 time series.

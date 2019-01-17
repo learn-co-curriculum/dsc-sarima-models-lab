@@ -1,5 +1,5 @@
 
-# sARIMA models - Lab
+# SARIMA Models - Lab
 
 ## Introduction
 

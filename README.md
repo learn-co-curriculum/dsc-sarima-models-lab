@@ -9,8 +9,8 @@ In this lesson, we'll reiterate what you learned previously, and talk about **in
 
 You will be able to: 
 
-* Demonstrate a conceptual understanding of ARIMA modelling components for time-series forecasting
-* Pre-process the data to meet ARIMA based forecasting assumptions
+* Demonstrate a conceptual understanding of ARIMA modeling components for time-series forecasting
+* Preprocess the data to meet ARIMA based forecasting assumptions
 * Identify best model parameters using grid search for p,d,q and seasonal p,d,q parameters
 * Evaluate the ARIMA model with validation testing
 * Predict and visualize future values and calculate confidence level for the predictions 
@@ -28,9 +28,9 @@ Let's summarize what we can observe when having time series in three situations:
 
 1. A strictly stationary series with no dependence among the values. This is the easy case wherein we can model the residuals as white noise. But this is very rare.
 
-2. A nonstationary series with significant dependence among values, but no seasonality. In this case we can use ARMA models after we detrended, or we can use an **integrated** ARMA model that detrends for us.
+2. A non-stationary series with significant dependence among values, but no seasonality. In this case we can use ARMA models after we detrended, or we can use an **integrated** ARMA model that detrends for us.
 
-3. A nonstationary series with significant dependence among values, **and** seasonality. In this case we can use a seasonal arima or SARIMA model.
+3. A non-stationary series with significant dependence among values, **and** seasonality. In this case we can use a seasonal arima or SARIMA model.
 
 In this tutorial, we aim to produce reliable forecasts of a given time series by applying one of the most commonly used method for time series forecasting: ARIMA. After that we'll talk about seasonality and how to cope with it. 
 
@@ -38,13 +38,13 @@ One of the methods available in Python to model and predict future points of a t
 
 ## Dataset
 
-For this lab we shall use the dataset that we have seen before - "Atmospheric CO2 from Continuous Air Samples at Mauna Loa Observatory, Hawaii, U.S.A.," which collected CO2 samples from March 1958 to December 2001 (shown in lab1 if time-series). Let's bring in this data and plot as demosntrated earlier. You need to perform following tasks.
+For this lab we shall use the dataset that we have seen before - "Atmospheric CO2 from Continuous Air Samples at Mauna Loa Observatory, Hawaii, U.S.A.," which collected CO2 samples from March 1958 to December 2001. Let's bring in this data and plot as demonstrated earlier. You will need to perform following tasks.
 
 1. Import necessary libraries
 2. import the CO2 dataset from `statsmodels`
 3. Resample the data as monthly groups and take monthly average
 4. Fill in the missing values with `Pandas.bfill()`
-5. Plot the timeseries and inspect the head of data 
+5. Plot the time series and inspect the head of data 
 
 
 ```python
@@ -102,7 +102,7 @@ print(CO2.head())
     Freq: MS, Name: co2, dtype: float64
 
 
-As noted earlier, the time series has spikes reflecting an obvious seasonality pattern, as well as an increasing trend. Now that we've seen the structure of this time-series, we can move on to ARIMA  modelling. 
+As noted earlier, the time series has spikes reflecting an obvious seasonality pattern, as well as an overall increasing trend.
 
 ## The ARIMA Time Series Model
 
@@ -132,12 +132,12 @@ A detailed article on these parameters is available [HERE](https://www.quantstar
 
 The seasonal ARIMA method can appear daunting because of the multiple tuning parameters involved. In the next section, we will describe how to automate the process of identifying the optimal set of parameters for the seasonal ARIMA time series model.
 
-## Parameter Selection
+## Parameter Selection for the ARIMA Time Series Model
 
 
 The first step towards fitting an ARIMA model is to find the values of `ARIMA(p,d,q)(P,D,Q)s` that produce the desired output. Selection of these parameters requires domain expertise and time.  We shall first generate small ranges of these parameters and use a "grid search" to iteratively explore different combinations of parameters. For each combination of parameters, we fit a new seasonal ARIMA model with the `SARIMAX()` function from the statsmodels module and assess its overall quality. 
 
-`SARIMAX` detailed documentation can be viewed [HERE](https://www.statsmodels.org/dev/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html)
+`SARIMAX` detailed documentation can be viewed [here](https://www.statsmodels.org/dev/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html)
 
 Let's begin by generating example combination of parameters that we wish to use.
 
@@ -145,7 +145,7 @@ Let's begin by generating example combination of parameters that we wish to use.
 
 2. Generate combinations for `(p,d,q)` using `itertools.product`.
 3. Similarly, generate seasonal combinations as `(p,d,q)s`. Use s = 12 (constant)
-4. Check the combinations for validity.
+4. Print some example combinations for seasonal ARIMA
 
 
 ```python
@@ -160,7 +160,8 @@ pdqs = [(x[0], x[1], x[2], 12) for x in list(itertools.product(p, d, q))]
 
 ```
 
-## AIC (Akaike Information Criterion) 
+## AIC (Akaike Information Criterion) as Regularization Measure
+
 
 For evaluating the model, we shall use the AIC (Akaike Information Criterion) value, which is provided by ARIMA models fitted using `statsmodels` library. The Akaike information criterion (AIC) is an estimator of the relative quality of statistical models for a given set of data. Given a collection of models for the data, AIC estimates the quality of each model, relative to each of the other models. Thus, AIC provides a means for model selection. 
 
@@ -344,11 +345,11 @@ ans_df.loc[ans_df['aic'].idxmin()]
 
 The output of our code suggests that `ARIMA(1, 1, 1)x(1, 1, 1, 12)` yields the lowest AIC value of `277.78`. We should therefore consider this to be optimal option out of all the models we have considered.
 
-## Model Fitting
+## Fitting an ARIMA Time Series Model
 
-In the simple grid example above, we identified the set of parameters that produced the best fitting model to our time series data. We can proceed to analyze this particular model in more depth.
+Using grid search, we have identified the set of parameters that produces the best fitting model to our time series data. We can proceed to analyze this particular model in more depth.
 
-Let's plug in the optimal parameter values into a new SARIMAX model:
+We'll start by plugging the optimal parameter values into a new SARIMAX model.
 
 
 ```python
@@ -384,7 +385,7 @@ print(output.summary().tables[1])
     ==============================================================================
 
 
-The model returns a lot of information, but we'll focus only on the table of coefficients. The `coef` column above shows the importance of each feature and how each one impacts the time series patterns.  The **P>|z|** provides  the significance of each feature weight. 
+The model returns a lot of information, but we'll focus only on the table of coefficients. The `coef` column above shows the importance of each feature and how each one impacts the time series patterns.  The $P>|z|$ provides  the significance of each feature weight. 
 
 For our time-series, we see that each weight has a p-value lower or close to 0.05, so it is reasonable to retain all of them in our model.
 
@@ -403,7 +404,7 @@ plt.show()
 ![png](index_files/index_16_0.png)
 
 
-The purpose here to ensure that residuals remain un-correlated, normally distributed having zero mean. In the absence of these assumptions, we can not move forward and need further tweating of the model. 
+The purpose here to ensure that residuals remain uncorrelated, normally distributed having zero mean. In the absence of these assumptions, we can not move forward and need further tweaking of the model. 
 
 Let's check for these assumptions from diagnostics plots.
 
@@ -434,8 +435,6 @@ The `get_prediction()` and `conf_int()` attributes allow us to obtain the values
 * Get the confidence intervals for all predictions.
 
 * For `get_predictions()`, set the `dynamic` parameter to False to ensures that we produce one-step ahead forecasts, meaning that forecasts at each point are generated using the full history up to that point.
-
-
 
 
 ```python
@@ -517,8 +516,6 @@ pred_dynamic_conf = pred_dynamic.conf_int()
 Plotting the observed and forecasted values of the time series, we see that the overall forecasts are accurate even when using dynamic forecasts. All forecasted values (red line) match pretty closely to the ground truth (blue line), and are well within the confidence intervals of our forecast.
 
 
-
-
 ```python
 # Plot the dynamic forecast with confidence intervals.
 
@@ -565,7 +562,6 @@ The predicted values obtained from the dynamic forecasts yield an MSE of 1.01. T
 Both the one-step ahead and dynamic forecasts confirm that this time series model is valid. However, much of the interest around time series forecasting is the ability to forecast future values way ahead in time.
 
 
-
 ## Producing and Visualizing Forecasts
 
 We will now describe how to leverage our seasonal ARIMA time series model to forecast future values. The `get_forecast()` attribute of our time series object can compute forecasted values for a specified number of steps ahead.
@@ -607,13 +603,12 @@ Both the forecasts and associated confidence interval that we have generated can
 
 As we forecast further out into the future, it is natural for us to become less confident in our values. This is reflected by the confidence intervals generated by our model, which grow larger as we move further out into the future.
 
-
-
 ## Bonus Exercises
 
 * Change the start date of your dynamic forecasts to see how this affects the overall quality of your forecasts.
 * Try more combinations of parameters to see if you can improve the goodness-of-fit of your model.
 * Select a different metric to select the best model. For example, we used the AIC measure to find the best model, but you could seek to optimize the out-of-sample mean square error instead.
+
 
 ## Summary
 

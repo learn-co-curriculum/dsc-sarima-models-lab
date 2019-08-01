@@ -80,6 +80,64 @@ plt.style.use('ggplot')
 # Freq: MS, Name: co2, dtype: float64
 ```
 
+
+```python
+# __SOLUTION__ 
+# Import necessary libraries
+import warnings
+warnings.filterwarnings('ignore')
+warnings.
+import itertools
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+from matplotlib.pylab import rcParams
+plt.style.use('ggplot')
+```
+
+
+```python
+# __SOLUTION__ 
+dataset = sm.datasets.co2.load().data
+df = pd.DataFrame(dataset)
+df['date'] = pd.to_datetime(df.date.str.decode("utf-8"))
+df.set_index(df['date'], inplace=True)
+df.drop(['date'], axis=1, inplace=True)
+df = df.asfreq('W-SAT')
+
+# The 'MS' string groups the data in buckets by start of the month
+CO2 = df['co2'].resample('MS').mean()
+
+# The term bfill means that we use the value before filling in missing values
+CO2 = CO2.fillna(CO2.bfill())
+
+# Plot the time-series
+CO2.plot(figsize=(15, 6))
+plt.show()
+print(CO2.head())
+
+# 1958-03-01    316.100000
+# 1958-04-01    317.200000
+# 1958-05-01    317.433333
+# 1958-06-01    315.625000
+# 1958-07-01    315.625000
+# Freq: MS, Name: co2, dtype: float64
+```
+
+
+![png](index_files/index_4_0.png)
+
+
+    date
+    1958-03-01    316.100000
+    1958-04-01    317.200000
+    1958-05-01    317.433333
+    1958-06-01    315.625000
+    1958-07-01    315.625000
+    Freq: MS, Name: co2, dtype: float64
+
+
 As noted earlier, the time series has spikes reflecting an obvious seasonality pattern, as well as an overall increasing trend.
 
 ## The ARIMA Time Series Model
@@ -138,6 +196,20 @@ pdqs = None
 
 ```
 
+
+```python
+# __SOLUTION__ 
+# Define the p, d and q parameters to take any value between 0 and 2
+p = d = q = range(0, 2)
+
+# Generate all different combinations of p, q and q triplets
+pdq = list(itertools.product(p, d, q))
+
+# Generate all different combinations of seasonal p, q and q triplets
+pdqs = [(x[0], x[1], x[2], 12) for x in list(itertools.product(p, d, q))]
+
+```
+
 ## AIC (Akaike Information Criterion) as Regularization Measure
 
 
@@ -187,6 +259,172 @@ NOTE:
 # Name: 59, dtype: object
 ```
 
+
+```python
+# __SOLUTION__ 
+# Run a grid with pdq and seasonal pdq parameters calculated above and get the best AIC value
+ans = []
+for comb in pdq:
+    for combs in pdqs:
+        try:
+            mod = sm.tsa.statespace.SARIMAX(CO2,
+                                            order=comb,
+                                            seasonal_order=combs,
+                                            enforce_stationarity=False,
+                                            enforce_invertibility=False)
+
+            output = mod.fit()
+            ans.append([comb, combs, output.aic])
+            print('ARIMA {} x {}12 : AIC Calculated ={}'.format(comb, combs, output.aic))
+        except:
+            continue
+
+            
+            
+# ARIMA(0, 0, 0)x(0, 0, 1, 12)12 - AIC:6787.34362403487
+# ARIMA(0, 0, 0)x(0, 1, 1, 12)12 - AIC:1596.7111727637512
+# ARIMA(0, 0, 0)x(1, 0, 0, 12)12 - AIC:1058.9388921320024
+#     .
+#     .
+#     .
+#     .
+# ARIMA(1, 1, 1)x(1, 0, 1, 12)12 - AIC:327.9049164493077
+# ARIMA(1, 1, 1)x(1, 1, 0, 12)12 - AIC:444.1243686483202
+# ARIMA(1, 1, 1)x(1, 1, 1, 12)12 - AIC:277.78021965631604    
+```
+
+    ARIMA (0, 0, 0) x (0, 0, 0, 12)12 : AIC Calculated =7612.583429881011
+    ARIMA (0, 0, 0) x (0, 0, 1, 12)12 : AIC Calculated =6787.3436240316605
+    ARIMA (0, 0, 0) x (0, 1, 0, 12)12 : AIC Calculated =1854.828234141261
+    ARIMA (0, 0, 0) x (0, 1, 1, 12)12 : AIC Calculated =1596.711172764299
+    ARIMA (0, 0, 0) x (1, 0, 0, 12)12 : AIC Calculated =1058.9388921320026
+    ARIMA (0, 0, 0) x (1, 0, 1, 12)12 : AIC Calculated =1056.2878557033246
+    ARIMA (0, 0, 0) x (1, 1, 0, 12)12 : AIC Calculated =1361.6578978072075
+    ARIMA (0, 0, 0) x (1, 1, 1, 12)12 : AIC Calculated =1044.7647913037993
+    ARIMA (0, 0, 1) x (0, 0, 0, 12)12 : AIC Calculated =6881.048754074922
+    ARIMA (0, 0, 1) x (0, 0, 1, 12)12 : AIC Calculated =6072.662327948141
+    ARIMA (0, 0, 1) x (0, 1, 0, 12)12 : AIC Calculated =1379.194106691656
+    ARIMA (0, 0, 1) x (0, 1, 1, 12)12 : AIC Calculated =1241.4174716802704
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (0, 0, 1) x (1, 0, 0, 12)12 : AIC Calculated =1108.863847677881
+    ARIMA (0, 0, 1) x (1, 0, 1, 12)12 : AIC Calculated =780.4316432037131
+    ARIMA (0, 0, 1) x (1, 1, 0, 12)12 : AIC Calculated =1119.5957893612945
+    ARIMA (0, 0, 1) x (1, 1, 1, 12)12 : AIC Calculated =807.0912989123287
+    ARIMA (0, 1, 0) x (0, 0, 0, 12)12 : AIC Calculated =1675.8086923024293
+    ARIMA (0, 1, 0) x (0, 0, 1, 12)12 : AIC Calculated =1240.221119919409
+    ARIMA (0, 1, 0) x (0, 1, 0, 12)12 : AIC Calculated =633.4425586468699
+    ARIMA (0, 1, 0) x (0, 1, 1, 12)12 : AIC Calculated =337.7938550348507
+    ARIMA (0, 1, 0) x (1, 0, 0, 12)12 : AIC Calculated =619.9501759055394
+    ARIMA (0, 1, 0) x (1, 0, 1, 12)12 : AIC Calculated =376.9283759724254
+    ARIMA (0, 1, 0) x (1, 1, 0, 12)12 : AIC Calculated =478.3296906672489
+    ARIMA (0, 1, 0) x (1, 1, 1, 12)12 : AIC Calculated =323.0776499803783
+    ARIMA (0, 1, 1) x (0, 0, 0, 12)12 : AIC Calculated =1371.187260233786
+    ARIMA (0, 1, 1) x (0, 0, 1, 12)12 : AIC Calculated =1101.8410734302897
+    ARIMA (0, 1, 1) x (0, 1, 0, 12)12 : AIC Calculated =587.9479709744935
+    ARIMA (0, 1, 1) x (0, 1, 1, 12)12 : AIC Calculated =302.4949000759941
+    ARIMA (0, 1, 1) x (1, 0, 0, 12)12 : AIC Calculated =584.4333533144177
+    ARIMA (0, 1, 1) x (1, 0, 1, 12)12 : AIC Calculated =337.19990521132956
+    ARIMA (0, 1, 1) x (1, 1, 0, 12)12 : AIC Calculated =433.0863608026567
+    ARIMA (0, 1, 1) x (1, 1, 1, 12)12 : AIC Calculated =281.51898119127014
+    ARIMA (1, 0, 0) x (0, 0, 0, 12)12 : AIC Calculated =1676.8881767362054
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 0, 0) x (0, 0, 1, 12)12 : AIC Calculated =1241.9354581283942
+    ARIMA (1, 0, 0) x (0, 1, 0, 12)12 : AIC Calculated =624.2602350739005
+    ARIMA (1, 0, 0) x (0, 1, 1, 12)12 : AIC Calculated =341.28966122019665
+    ARIMA (1, 0, 0) x (1, 0, 0, 12)12 : AIC Calculated =579.3897029013909
+    ARIMA (1, 0, 0) x (1, 0, 1, 12)12 : AIC Calculated =370.59195630710303
+    ARIMA (1, 0, 0) x (1, 1, 0, 12)12 : AIC Calculated =476.05004296711184
+    ARIMA (1, 0, 0) x (1, 1, 1, 12)12 : AIC Calculated =329.5844990909931
+    ARIMA (1, 0, 1) x (0, 0, 0, 12)12 : AIC Calculated =1372.6085881706358
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 0, 1) x (0, 0, 1, 12)12 : AIC Calculated =1199.4888199375305
+    ARIMA (1, 0, 1) x (0, 1, 0, 12)12 : AIC Calculated =586.4485732492988
+    ARIMA (1, 0, 1) x (0, 1, 1, 12)12 : AIC Calculated =305.6273810627783
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 0, 1) x (1, 0, 0, 12)12 : AIC Calculated =586.3100162936786
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 0, 1) x (1, 0, 1, 12)12 : AIC Calculated =399.40329412808194
+    ARIMA (1, 0, 1) x (1, 1, 0, 12)12 : AIC Calculated =433.5469464597512
+    ARIMA (1, 0, 1) x (1, 1, 1, 12)12 : AIC Calculated =285.76517845194695
+    ARIMA (1, 1, 0) x (0, 0, 0, 12)12 : AIC Calculated =1324.311112732457
+    ARIMA (1, 1, 0) x (0, 0, 1, 12)12 : AIC Calculated =1060.9351914425656
+    ARIMA (1, 1, 0) x (0, 1, 0, 12)12 : AIC Calculated =600.7412682874252
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 1, 0) x (0, 1, 1, 12)12 : AIC Calculated =312.1329632683155
+    ARIMA (1, 1, 0) x (1, 0, 0, 12)12 : AIC Calculated =593.6637754853627
+    ARIMA (1, 1, 0) x (1, 0, 1, 12)12 : AIC Calculated =349.20914648870234
+    ARIMA (1, 1, 0) x (1, 1, 0, 12)12 : AIC Calculated =440.13758848434276
+    ARIMA (1, 1, 0) x (1, 1, 1, 12)12 : AIC Calculated =293.56145594783413
+    ARIMA (1, 1, 1) x (0, 0, 0, 12)12 : AIC Calculated =1262.6545542448305
+    ARIMA (1, 1, 1) x (0, 0, 1, 12)12 : AIC Calculated =1052.0636724058634
+    ARIMA (1, 1, 1) x (0, 1, 0, 12)12 : AIC Calculated =581.3099935252751
+    ARIMA (1, 1, 1) x (0, 1, 1, 12)12 : AIC Calculated =295.9374058139739
+    ARIMA (1, 1, 1) x (1, 0, 0, 12)12 : AIC Calculated =576.8647111959294
+    ARIMA (1, 1, 1) x (1, 0, 1, 12)12 : AIC Calculated =327.90491128637893
+    ARIMA (1, 1, 1) x (1, 1, 0, 12)12 : AIC Calculated =444.12436865154666
+
+
+    /Users/forest.polchow/anaconda3/lib/python3.6/site-packages/statsmodels/base/model.py:508: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+      "Check mle_retvals", ConvergenceWarning)
+
+
+    ARIMA (1, 1, 1) x (1, 1, 1, 12)12 : AIC Calculated =277.78022542661506
+
+
+
+```python
+# __SOLUTION__ 
+# Find the parameters with minimal AIC value.
+
+ans_df = pd.DataFrame(ans, columns=['pdq', 'pdqs', 'aic'])
+ans_df.loc[ans_df['aic'].idxmin()]
+
+# pdq         (1, 1, 1)
+# pdqs    (1, 1, 1, 12)
+# aic            277.78
+# Name: 59, dtype: object
+```
+
+
+
+
+    pdq         (1, 1, 1)
+    pdqs    (1, 1, 1, 12)
+    aic            277.78
+    Name: 63, dtype: object
+
+
+
 The output of our code suggests that `ARIMA(1, 1, 1)x(1, 1, 1, 12)` yields the lowest AIC value of `277.78`. We should therefore consider this to be optimal option out of all the models we have considered.
 
 ## Fitting an ARIMA Time Series Model
@@ -212,6 +450,41 @@ We'll start by plugging the optimal parameter values into a new SARIMAX model.
 # ==============================================================================
 ```
 
+
+```python
+# __SOLUTION__ 
+ARIMA_MODEL = sm.tsa.statespace.SARIMAX(CO2,
+                                order=(1, 1, 1),
+                                seasonal_order=(1, 1, 1, 12),
+                                enforce_stationarity=False,
+                                enforce_invertibility=False)
+
+output = ARIMA_MODEL.fit()
+
+print(output.summary().tables[1])
+
+# ==============================================================================
+#                  coef    std err          z      P>|z|      [0.025      0.975]
+# ------------------------------------------------------------------------------
+# ar.L1          0.3182      0.092      3.442      0.001       0.137       0.499
+# ma.L1         -0.6254      0.077     -8.163      0.000      -0.776      -0.475
+# ar.S.L12       0.0010      0.001      1.732      0.083      -0.000       0.002
+# ma.S.L12      -0.8769      0.026    -33.812      0.000      -0.928      -0.826
+# sigma2         0.0972      0.004     22.632      0.000       0.089       0.106
+# ==============================================================================
+```
+
+    ==============================================================================
+                     coef    std err          z      P>|z|      [0.025      0.975]
+    ------------------------------------------------------------------------------
+    ar.L1          0.3183      0.092      3.443      0.001       0.137       0.499
+    ma.L1         -0.6255      0.077     -8.166      0.000      -0.776      -0.475
+    ar.S.L12       0.0010      0.001      1.732      0.083      -0.000       0.002
+    ma.S.L12      -0.8769      0.026    -33.808      0.000      -0.928      -0.826
+    sigma2         0.0972      0.004     22.634      0.000       0.089       0.106
+    ==============================================================================
+
+
 The model returns a lot of information, but we'll focus only on the table of coefficients. The `coef` column above shows the importance of each feature and how each one impacts the time series patterns.  The $P>|z|$ provides  the significance of each feature weight. 
 
 For our time-series, we see that each weight has a p-value lower or close to 0.05, so it is reasonable to retain all of them in our model.
@@ -225,6 +498,18 @@ The `plot_diagnostics()` function on ARIMA output below:
 # Use plot_diagnostics with results calculated above.
 
 ```
+
+
+```python
+# __SOLUTION__ 
+# Use plot_diagnostics with results calculated above.
+output.plot_diagnostics(figsize=(15, 18))
+plt.show()
+```
+
+
+![png](index_files/index_23_0.png)
+
 
 The purpose here to ensure that residuals remain uncorrelated, normally distributed having zero mean. In the absence of these assumptions, we can not move forward and need further tweaking of the model. 
 
@@ -266,6 +551,15 @@ prediction = None
 pred_conf = None
 ```
 
+
+```python
+# __SOLUTION__ 
+# Get predictions starting from 01-01-1998 and calculate confidence intervals.
+
+pred = output.get_prediction(start=pd.to_datetime('1998-01-01'), dynamic=False)
+pred_conf = pred.conf_int()
+```
+
 We shall now plot the real and forecasted values of the CO2 time series to assess how well we did. 
 
 * Plot the observed values from the dataset, starting at 1990.
@@ -287,6 +581,36 @@ We shall now plot the real and forecasted values of the CO2 time series to asses
 
 ```
 
+
+```python
+# __SOLUTION__ 
+# Plot real vs predicted values along with confidence interval
+
+rcParams['figure.figsize'] = 15, 6
+
+#Plot observed values
+ax = CO2['1990':].plot(label='observed')
+
+#Plot predicted values
+pred.predicted_mean.plot(ax=ax, label='One-step ahead Forecast', alpha=.9)
+
+#Plot the range for confidence intervals
+ax.fill_between(pred_conf.index,
+                pred_conf.iloc[:, 0],
+                pred_conf.iloc[:, 1], color='g', alpha=.5)
+
+#Set axes labels
+ax.set_xlabel('Date')
+ax.set_ylabel('CO2 Levels')
+plt.legend()
+
+plt.show()
+```
+
+
+![png](index_files/index_30_0.png)
+
+
 The forecasts align with the true values  as seen above,with overall increase trend. We shall also check for the accuracy of our forecasts using  **MSE (Mean Squared Error)**. This will provide us with the average error of our forecasts. For each predicted value, we compute its distance to the true value and square the result. The results need to be squared so that positive/negative differences do not cancel each other out when we compute the overall mean.
 
 
@@ -303,6 +627,23 @@ mse = None
 # The Mean Squared Error of our forecasts is 0.07
 ```
 
+
+```python
+# __SOLUTION__ 
+# Get the Real and predicted values
+CO2_forecasted = pred.predicted_mean
+CO2_truth = CO2['1998-01-01':]
+
+# Compute the mean square error
+mse = ((CO2_forecasted - CO2_truth) ** 2).mean()
+print('The Mean Squared Error of our forecasts is {}'.format(round(mse, 2)))
+
+# The Mean Squared Error of our forecasts is 0.07
+```
+
+    The Mean Squared Error of our forecasts is 0.07
+
+
 The MSE of our one-step ahead forecasts yields a value of 0.07, which is very low as it is close to 0. An MSE of 0 would that the estimator is predicting observations of the parameter with perfect accuracy, which would be an ideal scenario but it not typically possible.
 
 ### Dynamic Forecasting
@@ -318,12 +659,45 @@ pred_dynamic = None
 pred_dynamic_conf = None
 ```
 
+
+```python
+# __SOLUTION__ 
+# Get dynamic predictions with confidence intervals as above.
+pred_dynamic = output.get_prediction(start=pd.to_datetime('1998-01-01'), dynamic=True, full_results=True)
+pred_dynamic_conf = pred_dynamic.conf_int()
+```
+
 Plotting the observed and forecasted values of the time series, we see that the overall forecasts are accurate even when using dynamic forecasts. All forecasted values (red line) match pretty closely to the ground truth (blue line), and are well within the confidence intervals of our forecast.
 
 
 ```python
 # Plot the dynamic forecast with confidence intervals as above
 ```
+
+
+```python
+# __SOLUTION__ 
+# Plot the dynamic forecast with confidence intervals.
+
+ax = CO2['1990':].plot(label='observed', figsize=(20, 15))
+pred_dynamic.predicted_mean.plot(label='Dynamic Forecast', ax=ax)
+
+ax.fill_between(pred_dynamic_conf.index,
+                pred_dynamic_conf.iloc[:, 0],
+                pred_dynamic_conf.iloc[:, 1], color='g', alpha=.3)
+
+ax.fill_betweenx(ax.get_ylim(), pd.to_datetime('1998-01-01'), CO2_forecasted.index[-1], alpha=.1, zorder=-1)
+
+ax.set_xlabel('Date')
+ax.set_ylabel('CO2 Levels')
+
+plt.legend()
+plt.show()
+```
+
+
+![png](index_files/index_39_0.png)
+
 
 Once again, we quantify the predictive performance of our forecasts by computing the MSE.
 
@@ -339,6 +713,23 @@ mse = None
 
 # The Mean Squared Error of our forecasts is 1.01
 ```
+
+
+```python
+# __SOLUTION__ 
+# Extract the predicted and true values of our time series
+CO2_forecasted = pred_dynamic.predicted_mean
+CO2_truth = CO2['1998-01-01':]
+
+# Compute the mean square error
+mse = ((CO2_forecasted - CO2_truth) ** 2).mean()
+print('The Mean Squared Error of our forecasts is {}'.format(round(mse, 2)))
+
+# The Mean Squared Error of our forecasts is 1.01
+```
+
+    The Mean Squared Error of our forecasts is 1.01
+
 
 The predicted values obtained from the dynamic forecasts yield an MSE of 1.01. This is slightly higher than the one-step ahead, which is to be expected given that we are relying on less historical data from the time series.
 
@@ -357,6 +748,16 @@ prediction = None
 pred_conf = None
 ```
 
+
+```python
+# __SOLUTION__ 
+# Get forecast 500 steps ahead in future
+prediction = output.get_forecast(steps=500)
+
+# Get confidence intervals of forecasts
+pred_conf = prediction.conf_int()
+```
+
 We can use the output of this code to plot the time series and forecasts of its future values.
 
 
@@ -366,6 +767,27 @@ We can use the output of this code to plot the time series and forecasts of its 
 # Plot future predictions with confidence intervals
 
 ```
+
+
+```python
+# __SOLUTION__ 
+# Plot future predictions with confidence intervals
+
+ax = CO2.plot(label='observed', figsize=(20, 15))
+prediction.predicted_mean.plot(ax=ax, label='Forecast')
+ax.fill_between(pred_conf.index,
+                pred_conf.iloc[:, 0],
+                pred_conf.iloc[:, 1], color='k', alpha=.25)
+ax.set_xlabel('Date')
+ax.set_ylabel('CO2 Levels')
+
+plt.legend()
+plt.show()
+```
+
+
+![png](index_files/index_49_0.png)
+
 
 Both the forecasts and associated confidence interval that we have generated can now be used to further understand the time series and foresee what to expect. Our forecasts show that the time series is expected to continue increasing at a steady pace.
 

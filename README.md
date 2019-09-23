@@ -51,7 +51,6 @@ For this lab we shall use the dataset that we have seen before - "Atmospheric CO
 # Import necessary libraries
 import warnings
 warnings.filterwarnings('ignore')
-warnings.
 import itertools
 import pandas as pd
 import numpy as np
@@ -65,7 +64,7 @@ plt.style.use('ggplot')
 ```python
 dataset = sm.datasets.co2.load().data
 df = pd.DataFrame(dataset)
-df['date'] = pd.to_datetime(df.date.str.decode("utf-8"))
+df['date'] = pd.to_datetime(df['index'])
 df.set_index(df['date'], inplace=True)
 df.drop(['date'], axis=1, inplace=True)
 df = df.asfreq('W-SAT')

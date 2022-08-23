@@ -1,4 +1,3 @@
-
 # SARIMA Models - Lab
 
 ## Introduction
@@ -54,7 +53,8 @@ For this lab you will use the dataset that we have seen before - "Atmospheric CO
 ```python
 # Import necessary libraries
 import warnings
-warnings.filterwarnings('ignore')
+from statsmodels.tools.sm_exceptions import ConvergenceWarning
+warnings.simplefilter('ignore', ConvergenceWarning)
 import itertools
 import pandas as pd
 import numpy as np
@@ -71,21 +71,158 @@ dataset = sm.datasets.co2.load().data
 
 # Convert into DataFrame
 df = pd.DataFrame(dataset)
+```
 
-# Update to datetime type
-df['date'] = pd.to_datetime(df['index'])
 
-# Set as index
-df.set_index(df['date'], inplace=True)
+```python
+# Make sure that index is DatetimeIndex named "date"
+if isinstance(df.index, pd.DatetimeIndex):
+    df.index.name = 'date'
+else:
+    df.rename(columns={'index':'date'}, inplace=True)
+    df.set_index('date', inplace=True)
+    
+df
+```
 
-df.drop(['date', 'index'], axis=1, inplace=True)
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>co2</th>
+    </tr>
+    <tr>
+      <th>date</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>1958-03-29</th>
+      <td>316.1</td>
+    </tr>
+    <tr>
+      <th>1958-04-05</th>
+      <td>317.3</td>
+    </tr>
+    <tr>
+      <th>1958-04-12</th>
+      <td>317.6</td>
+    </tr>
+    <tr>
+      <th>1958-04-19</th>
+      <td>317.5</td>
+    </tr>
+    <tr>
+      <th>1958-04-26</th>
+      <td>316.4</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>2001-12-01</th>
+      <td>370.3</td>
+    </tr>
+    <tr>
+      <th>2001-12-08</th>
+      <td>370.8</td>
+    </tr>
+    <tr>
+      <th>2001-12-15</th>
+      <td>371.2</td>
+    </tr>
+    <tr>
+      <th>2001-12-22</th>
+      <td>371.3</td>
+    </tr>
+    <tr>
+      <th>2001-12-29</th>
+      <td>371.5</td>
+    </tr>
+  </tbody>
+</table>
+<p>2284 rows × 1 columns</p>
+</div>
+
+
+
+
+```python
 df = df.asfreq('W-SAT')
 
 # The 'MS' string groups the data in buckets by start of the month
 CO2 = df['co2'].resample('MS').mean()
 
+CO2
+```
+
+
+
+
+    date
+    1958-03-01    316.100000
+    1958-04-01    317.200000
+    1958-05-01    317.433333
+    1958-06-01           NaN
+    1958-07-01    315.625000
+                     ...    
+    2001-08-01    369.425000
+    2001-09-01    367.880000
+    2001-10-01    368.050000
+    2001-11-01    369.375000
+    2001-12-01    371.020000
+    Freq: MS, Name: co2, Length: 526, dtype: float64
+
+
+
+
+```python
 # The term bfill means that we use the value before filling in missing values
 CO2 = CO2.fillna(CO2.bfill())
+
+CO2
+```
+
+
+
+
+    date
+    1958-03-01    316.100000
+    1958-04-01    317.200000
+    1958-05-01    317.433333
+    1958-06-01    315.625000
+    1958-07-01    315.625000
+                     ...    
+    2001-08-01    369.425000
+    2001-09-01    367.880000
+    2001-10-01    368.050000
+    2001-11-01    369.375000
+    2001-12-01    371.020000
+    Freq: MS, Name: co2, Length: 526, dtype: float64
+
+
+
+
+```python
 
 # Plot the time series
 CO2.plot(figsize=(15, 6))
@@ -94,7 +231,9 @@ print(CO2.head())
 ```
 
 
-![png](index_files/index_2_0.png)
+    
+![png](index_files/index_6_0.png)
+    
 
 
     date
@@ -193,129 +332,75 @@ for comb in pdq:
 
             output = mod.fit()
             ans.append([comb, combs, output.aic])
-            print('ARIMA {} x {}12 : AIC Calculated ={}'.format(comb, combs, output.aic))
+            print('ARIMA {} x {}: AIC Calculated={}'.format(comb, combs, output.aic))
         except:
             continue
 ```
 
-    ARIMA (0, 0, 0) x (0, 0, 0, 12)12 : AIC Calculated =7612.583429881011
-    ARIMA (0, 0, 0) x (0, 0, 1, 12)12 : AIC Calculated =6787.343624036737
-    ARIMA (0, 0, 0) x (0, 1, 0, 12)12 : AIC Calculated =1854.828234141261
-    ARIMA (0, 0, 0) x (0, 1, 1, 12)12 : AIC Calculated =1596.7111727641156
-    ARIMA (0, 0, 0) x (1, 0, 0, 12)12 : AIC Calculated =1058.9388921320035
-    ARIMA (0, 0, 0) x (1, 0, 1, 12)12 : AIC Calculated =1056.2878498284585
-    ARIMA (0, 0, 0) x (1, 1, 0, 12)12 : AIC Calculated =1361.6578978072075
-    ARIMA (0, 0, 0) x (1, 1, 1, 12)12 : AIC Calculated =1044.7647913337166
-    ARIMA (0, 0, 1) x (0, 0, 0, 12)12 : AIC Calculated =6881.048754098349
-
-
-    //anaconda3/lib/python3.7/site-packages/statsmodels/base/model.py:512: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
-      "Check mle_retvals", ConvergenceWarning)
-
-
-    ARIMA (0, 0, 1) x (0, 0, 1, 12)12 : AIC Calculated =6072.662327360112
-    ARIMA (0, 0, 1) x (0, 1, 0, 12)12 : AIC Calculated =1379.1941067312878
-    ARIMA (0, 0, 1) x (0, 1, 1, 12)12 : AIC Calculated =1241.41747167922
-
-
-    //anaconda3/lib/python3.7/site-packages/statsmodels/base/model.py:512: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
-      "Check mle_retvals", ConvergenceWarning)
-
-
-    ARIMA (0, 0, 1) x (1, 0, 0, 12)12 : AIC Calculated =1084.8212083725516
-
-
-    //anaconda3/lib/python3.7/site-packages/statsmodels/base/model.py:512: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
-      "Check mle_retvals", ConvergenceWarning)
-
-
-    ARIMA (0, 0, 1) x (1, 0, 1, 12)12 : AIC Calculated =780.4319753278725
-    ARIMA (0, 0, 1) x (1, 1, 0, 12)12 : AIC Calculated =1119.5957893617642
-    ARIMA (0, 0, 1) x (1, 1, 1, 12)12 : AIC Calculated =807.0912988550679
-    ARIMA (0, 1, 0) x (0, 0, 0, 12)12 : AIC Calculated =1675.8086923024293
-    ARIMA (0, 1, 0) x (0, 0, 1, 12)12 : AIC Calculated =1240.2211199194078
-    ARIMA (0, 1, 0) x (0, 1, 0, 12)12 : AIC Calculated =633.4425586468699
-    ARIMA (0, 1, 0) x (0, 1, 1, 12)12 : AIC Calculated =337.7938545681309
-    ARIMA (0, 1, 0) x (1, 0, 0, 12)12 : AIC Calculated =619.9501759055394
-    ARIMA (0, 1, 0) x (1, 0, 1, 12)12 : AIC Calculated =376.9283759260472
-    ARIMA (0, 1, 0) x (1, 1, 0, 12)12 : AIC Calculated =478.3296906672489
-    ARIMA (0, 1, 0) x (1, 1, 1, 12)12 : AIC Calculated =323.1209111957046
-    ARIMA (0, 1, 1) x (0, 0, 0, 12)12 : AIC Calculated =1371.1872602334613
-    ARIMA (0, 1, 1) x (0, 0, 1, 12)12 : AIC Calculated =1101.8410734303134
-    ARIMA (0, 1, 1) x (0, 1, 0, 12)12 : AIC Calculated =587.9479709744935
-    ARIMA (0, 1, 1) x (0, 1, 1, 12)12 : AIC Calculated =302.4949002863983
-    ARIMA (0, 1, 1) x (1, 0, 0, 12)12 : AIC Calculated =584.4333533202588
-    ARIMA (0, 1, 1) x (1, 0, 1, 12)12 : AIC Calculated =337.1999051806238
-    ARIMA (0, 1, 1) x (1, 1, 0, 12)12 : AIC Calculated =433.0863608026567
-    ARIMA (0, 1, 1) x (1, 1, 1, 12)12 : AIC Calculated =281.51901807850425
-    ARIMA (1, 0, 0) x (0, 0, 0, 12)12 : AIC Calculated =1676.8881767362054
-
-
-    //anaconda3/lib/python3.7/site-packages/statsmodels/base/model.py:512: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
-      "Check mle_retvals", ConvergenceWarning)
-
-
-    ARIMA (1, 0, 0) x (0, 0, 1, 12)12 : AIC Calculated =1241.93516837594
-    ARIMA (1, 0, 0) x (0, 1, 0, 12)12 : AIC Calculated =624.2602350739005
-    ARIMA (1, 0, 0) x (0, 1, 1, 12)12 : AIC Calculated =341.28966119374843
-
-
-    //anaconda3/lib/python3.7/site-packages/statsmodels/base/model.py:512: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
-      "Check mle_retvals", ConvergenceWarning)
-
-
-    ARIMA (1, 0, 0) x (1, 0, 0, 12)12 : AIC Calculated =579.3896724260276
-    ARIMA (1, 0, 0) x (1, 0, 1, 12)12 : AIC Calculated =370.59198074098117
-    ARIMA (1, 0, 0) x (1, 1, 0, 12)12 : AIC Calculated =476.05004296711184
-    ARIMA (1, 0, 0) x (1, 1, 1, 12)12 : AIC Calculated =329.5844984579041
-    ARIMA (1, 0, 1) x (0, 0, 0, 12)12 : AIC Calculated =1372.6085881757353
-
-
-    //anaconda3/lib/python3.7/site-packages/statsmodels/base/model.py:512: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
-      "Check mle_retvals", ConvergenceWarning)
-
-
-    ARIMA (1, 0, 1) x (0, 0, 1, 12)12 : AIC Calculated =1199.4888173024801
-    ARIMA (1, 0, 1) x (0, 1, 0, 12)12 : AIC Calculated =586.4485733402275
-    ARIMA (1, 0, 1) x (0, 1, 1, 12)12 : AIC Calculated =305.6273828478691
-
-
-    //anaconda3/lib/python3.7/site-packages/statsmodels/base/model.py:512: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
-      "Check mle_retvals", ConvergenceWarning)
-
-
-    ARIMA (1, 0, 1) x (1, 0, 0, 12)12 : AIC Calculated =587.5472146452914
-
-
-    //anaconda3/lib/python3.7/site-packages/statsmodels/base/model.py:512: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
-      "Check mle_retvals", ConvergenceWarning)
-
-
-    ARIMA (1, 0, 1) x (1, 0, 1, 12)12 : AIC Calculated =399.05774213687255
-    ARIMA (1, 0, 1) x (1, 1, 0, 12)12 : AIC Calculated =433.54694645763277
-    ARIMA (1, 0, 1) x (1, 1, 1, 12)12 : AIC Calculated =285.7651748228969
-    ARIMA (1, 1, 0) x (0, 0, 0, 12)12 : AIC Calculated =1324.311112732457
-    ARIMA (1, 1, 0) x (0, 0, 1, 12)12 : AIC Calculated =1060.9351914429
-    ARIMA (1, 1, 0) x (0, 1, 0, 12)12 : AIC Calculated =600.7412682874252
-
-
-    //anaconda3/lib/python3.7/site-packages/statsmodels/base/model.py:512: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
-      "Check mle_retvals", ConvergenceWarning)
-
-
-    ARIMA (1, 1, 0) x (0, 1, 1, 12)12 : AIC Calculated =312.1329633872895
-    ARIMA (1, 1, 0) x (1, 0, 0, 12)12 : AIC Calculated =593.6637754853627
-    ARIMA (1, 1, 0) x (1, 0, 1, 12)12 : AIC Calculated =349.2091454977532
-    ARIMA (1, 1, 0) x (1, 1, 0, 12)12 : AIC Calculated =440.13758848434276
-    ARIMA (1, 1, 0) x (1, 1, 1, 12)12 : AIC Calculated =293.7426223017381
-    ARIMA (1, 1, 1) x (0, 0, 0, 12)12 : AIC Calculated =1262.654554246477
-    ARIMA (1, 1, 1) x (0, 0, 1, 12)12 : AIC Calculated =1052.0636724059016
-    ARIMA (1, 1, 1) x (0, 1, 0, 12)12 : AIC Calculated =581.3099935049833
-    ARIMA (1, 1, 1) x (0, 1, 1, 12)12 : AIC Calculated =295.93740595228724
-    ARIMA (1, 1, 1) x (1, 0, 0, 12)12 : AIC Calculated =576.8647111473961
-    ARIMA (1, 1, 1) x (1, 0, 1, 12)12 : AIC Calculated =327.90491303820085
-    ARIMA (1, 1, 1) x (1, 1, 0, 12)12 : AIC Calculated =428.6024633184294
-    ARIMA (1, 1, 1) x (1, 1, 1, 12)12 : AIC Calculated =277.78034944592747
+    ARIMA (0, 0, 0) x (0, 0, 0, 12): AIC Calculated=7612.583429881011
+    ARIMA (0, 0, 0) x (0, 0, 1, 12): AIC Calculated=6787.3436240305255
+    ARIMA (0, 0, 0) x (0, 1, 0, 12): AIC Calculated=1854.8282341411875
+    ARIMA (0, 0, 0) x (0, 1, 1, 12): AIC Calculated=1596.711172763999
+    ARIMA (0, 0, 0) x (1, 0, 0, 12): AIC Calculated=1058.9388921320035
+    ARIMA (0, 0, 0) x (1, 0, 1, 12): AIC Calculated=1056.2878417882825
+    ARIMA (0, 0, 0) x (1, 1, 0, 12): AIC Calculated=1361.657897806414
+    ARIMA (0, 0, 0) x (1, 1, 1, 12): AIC Calculated=1044.7647913092414
+    ARIMA (0, 0, 1) x (0, 0, 0, 12): AIC Calculated=6881.048754448737
+    ARIMA (0, 0, 1) x (0, 0, 1, 12): AIC Calculated=6072.662328566445
+    ARIMA (0, 0, 1) x (0, 1, 0, 12): AIC Calculated=1379.1941067339044
+    ARIMA (0, 0, 1) x (0, 1, 1, 12): AIC Calculated=1241.417471675692
+    ARIMA (0, 0, 1) x (1, 0, 0, 12): AIC Calculated=1088.6245117971866
+    ARIMA (0, 0, 1) x (1, 0, 1, 12): AIC Calculated=780.4305451357227
+    ARIMA (0, 0, 1) x (1, 1, 0, 12): AIC Calculated=1119.5957893602879
+    ARIMA (0, 0, 1) x (1, 1, 1, 12): AIC Calculated=807.0912989051546
+    ARIMA (0, 1, 0) x (0, 0, 0, 12): AIC Calculated=1675.8086923024293
+    ARIMA (0, 1, 0) x (0, 0, 1, 12): AIC Calculated=1240.2211199194094
+    ARIMA (0, 1, 0) x (0, 1, 0, 12): AIC Calculated=633.4425588432202
+    ARIMA (0, 1, 0) x (0, 1, 1, 12): AIC Calculated=337.79385462568143
+    ARIMA (0, 1, 0) x (1, 0, 0, 12): AIC Calculated=619.9501757828987
+    ARIMA (0, 1, 0) x (1, 0, 1, 12): AIC Calculated=376.92837600558056
+    ARIMA (0, 1, 0) x (1, 1, 0, 12): AIC Calculated=478.3296908427422
+    ARIMA (0, 1, 0) x (1, 1, 1, 12): AIC Calculated=323.0776501869712
+    ARIMA (0, 1, 1) x (0, 0, 0, 12): AIC Calculated=1371.187260233533
+    ARIMA (0, 1, 1) x (0, 0, 1, 12): AIC Calculated=1101.8410734302884
+    ARIMA (0, 1, 1) x (0, 1, 0, 12): AIC Calculated=587.9479710223064
+    ARIMA (0, 1, 1) x (0, 1, 1, 12): AIC Calculated=302.49490023375125
+    ARIMA (0, 1, 1) x (1, 0, 0, 12): AIC Calculated=584.4333533402487
+    ARIMA (0, 1, 1) x (1, 0, 1, 12): AIC Calculated=337.1999051810036
+    ARIMA (0, 1, 1) x (1, 1, 0, 12): AIC Calculated=433.08636080950055
+    ARIMA (0, 1, 1) x (1, 1, 1, 12): AIC Calculated=281.5190177527353
+    ARIMA (1, 0, 0) x (0, 0, 0, 12): AIC Calculated=1676.8881767362059
+    ARIMA (1, 0, 0) x (0, 0, 1, 12): AIC Calculated=1241.935463039973
+    ARIMA (1, 0, 0) x (0, 1, 0, 12): AIC Calculated=624.2602350702443
+    ARIMA (1, 0, 0) x (0, 1, 1, 12): AIC Calculated=341.28966178766825
+    ARIMA (1, 0, 0) x (1, 0, 0, 12): AIC Calculated=579.3896350275202
+    ARIMA (1, 0, 0) x (1, 0, 1, 12): AIC Calculated=370.5917432624467
+    ARIMA (1, 0, 0) x (1, 1, 0, 12): AIC Calculated=476.0500428418313
+    ARIMA (1, 0, 0) x (1, 1, 1, 12): AIC Calculated=329.5844993119342
+    ARIMA (1, 0, 1) x (0, 0, 0, 12): AIC Calculated=1372.6085881687848
+    ARIMA (1, 0, 1) x (0, 0, 1, 12): AIC Calculated=1199.4888220222724
+    ARIMA (1, 0, 1) x (0, 1, 0, 12): AIC Calculated=586.4485732598332
+    ARIMA (1, 0, 1) x (0, 1, 1, 12): AIC Calculated=305.6273820861841
+    ARIMA (1, 0, 1) x (1, 0, 0, 12): AIC Calculated=586.1761621127164
+    ARIMA (1, 0, 1) x (1, 0, 1, 12): AIC Calculated=399.34790273042915
+    ARIMA (1, 0, 1) x (1, 1, 0, 12): AIC Calculated=433.5469464376374
+    ARIMA (1, 0, 1) x (1, 1, 1, 12): AIC Calculated=285.7463846139442
+    ARIMA (1, 1, 0) x (0, 0, 0, 12): AIC Calculated=1324.3111127324564
+    ARIMA (1, 1, 0) x (0, 0, 1, 12): AIC Calculated=1060.9351914429164
+    ARIMA (1, 1, 0) x (0, 1, 0, 12): AIC Calculated=600.7412682947052
+    ARIMA (1, 1, 0) x (0, 1, 1, 12): AIC Calculated=312.1329632286378
+    ARIMA (1, 1, 0) x (1, 0, 0, 12): AIC Calculated=593.6637754773913
+    ARIMA (1, 1, 0) x (1, 0, 1, 12): AIC Calculated=349.2091414660087
+    ARIMA (1, 1, 0) x (1, 1, 0, 12): AIC Calculated=440.13758842591346
+    ARIMA (1, 1, 0) x (1, 1, 1, 12): AIC Calculated=293.74262232835247
+    ARIMA (1, 1, 1) x (0, 0, 0, 12): AIC Calculated=1262.654554246479
+    ARIMA (1, 1, 1) x (0, 0, 1, 12): AIC Calculated=1052.0636724058004
+    ARIMA (1, 1, 1) x (0, 1, 0, 12): AIC Calculated=581.3099934789011
+    ARIMA (1, 1, 1) x (0, 1, 1, 12): AIC Calculated=295.93740590399597
+    ARIMA (1, 1, 1) x (1, 0, 0, 12): AIC Calculated=576.8647111812154
+    ARIMA (1, 1, 1) x (1, 0, 1, 12): AIC Calculated=327.9049127920396
+    ARIMA (1, 1, 1) x (1, 1, 0, 12): AIC Calculated=428.60246331475133
+    ARIMA (1, 1, 1) x (1, 1, 1, 12): AIC Calculated=277.7801357662788
 
 
 
@@ -335,7 +420,7 @@ ans_df.loc[ans_df['aic'].idxmin()]
 
 
 
-The output of our code suggests that `ARIMA(1, 1, 1)x(1, 1, 1, 12)` yields the lowest AIC value of `277.78`. We should therefore consider this to be optimal option out of all the models we have considered.
+The output of our code suggests that `ARIMA (1, 1, 1) x (1, 1, 1, 12)` yields the lowest AIC value of `277.78`. We should therefore consider this to be optimal option out of all the models we have considered.
 
 ## Fitting an ARIMA Time Series Model
 
@@ -361,11 +446,11 @@ print(output.summary().tables[1])
     ==============================================================================
                      coef    std err          z      P>|z|      [0.025      0.975]
     ------------------------------------------------------------------------------
-    ar.L1          0.3182      0.092      3.446      0.001       0.137       0.499
-    ma.L1         -0.6257      0.076     -8.181      0.000      -0.776      -0.476
-    ar.S.L12       0.0010      0.001      1.732      0.083      -0.000       0.002
-    ma.S.L12      -0.8767      0.026    -33.787      0.000      -0.928      -0.826
-    sigma2         0.0971      0.004     22.636      0.000       0.089       0.106
+    ar.L1          0.3184      0.092      3.445      0.001       0.137       0.500
+    ma.L1         -0.6256      0.077     -8.170      0.000      -0.776      -0.476
+    ar.S.L12       0.0010      0.001      1.728      0.084      -0.000       0.002
+    ma.S.L12      -0.8768      0.026    -33.797      0.000      -0.928      -0.826
+    sigma2         0.0972      0.004     22.630      0.000       0.089       0.106
     ==============================================================================
 
 
@@ -385,7 +470,9 @@ plt.show()
 ```
 
 
-![png](index_files/index_14_0.png)
+    
+![png](index_files/index_18_0.png)
+    
 
 
 The purpose here is to ensure that residuals remain uncorrelated, normally distributed having zero mean. In the absence of these assumptions, we can not move forward and need further tweaking of the model. 
@@ -461,7 +548,9 @@ plt.show()
 ```
 
 
-![png](index_files/index_19_0.png)
+    
+![png](index_files/index_23_0.png)
+    
 
 
 The forecasts align with the true values  as seen above, with overall increase trend. We shall also check for the accuracy of our forecasts using  **MSE (Mean Squared Error)**. This will provide us with the average error of our forecasts. For each predicted value, we compute its distance to the true value and square the result. The results need to be squared so that positive/negative differences do not cancel each other out when we compute the overall mean.
@@ -518,7 +607,9 @@ plt.show()
 ```
 
 
-![png](index_files/index_25_0.png)
+    
+![png](index_files/index_29_0.png)
+    
 
 
 Once again, we quantify the predictive performance of our forecasts by computing the MSE.
@@ -575,7 +666,9 @@ plt.show()
 ```
 
 
-![png](index_files/index_32_0.png)
+    
+![png](index_files/index_36_0.png)
+    
 
 
 Both the forecasts and associated confidence interval that we have generated can now be used to further understand the time series and foresee what to expect. Our forecasts show that the time series is expected to continue increasing at a steady pace.
@@ -587,7 +680,6 @@ As we forecast further out into the future, it is natural for us to become less 
 * Change the start date of your dynamic forecasts to see how this affects the overall quality of your forecasts.
 * Try more combinations of parameters to see if you can improve the goodness-of-fit of your model.
 * Select a different metric to select the best model. For example, we used the AIC measure to find the best model, but you could seek to optimize the out-of-sample mean square error instead.
-
 
 ## Summary
 

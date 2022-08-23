@@ -1,4 +1,3 @@
-
 # SARIMA Models - Lab
 
 ## Introduction
@@ -54,7 +53,8 @@ For this lab you will use the dataset that we have seen before - "Atmospheric CO
 ```python
 # Import necessary libraries
 import warnings
-warnings.filterwarnings('ignore')
+from statsmodels.tools.sm_exceptions import ConvergenceWarning
+warnings.simplefilter('ignore', ConvergenceWarning)
 import itertools
 import pandas as pd
 import numpy as np
@@ -72,10 +72,7 @@ dataset = None
 # Convert into DataFrame
 df = None
 
-# Update to datetime type
-
-
-# Set as index
+# Make sure that index is DatetimeIndex named "date"
 
 
 # The 'MS' string groups the data in buckets by start of the month
@@ -171,7 +168,7 @@ NOTE:
 # Find the parameters with minimal AIC value
 ```
 
-The output of our code suggests that `ARIMA(1, 1, 1)x(1, 1, 1, 12)` yields the lowest AIC value of `277.78`. We should therefore consider this to be optimal option out of all the models we have considered.
+The output of our code suggests that `ARIMA (1, 1, 1) x (1, 1, 1, 12)` yields the lowest AIC value of `277.78`. We should therefore consider this to be optimal option out of all the models we have considered.
 
 ## Fitting an ARIMA Time Series Model
 
@@ -350,6 +347,10 @@ As we forecast further out into the future, it is natural for us to become less 
 * Try more combinations of parameters to see if you can improve the goodness-of-fit of your model.
 * Select a different metric to select the best model. For example, we used the AIC measure to find the best model, but you could seek to optimize the out-of-sample mean square error instead.
 
+
+```python
+
+```
 
 ## Summary
 
